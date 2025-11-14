@@ -1,0 +1,18 @@
+#%RAML 1.0
+title: Test API
+version: v1
+baseUri: https://api.test.com/{version}
+mediaType: application/json
+
+/test:
+  get:
+    description: Simple test endpoint
+    responses:
+      200:
+        body:
+          application/json:
+            example:
+              {
+                "message": "Hello from Test API!",
+                "status": "success"
+              }
