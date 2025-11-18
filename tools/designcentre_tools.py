@@ -6,7 +6,7 @@ DESIGN_BASE = "https://anypoint.mulesoft.com/designcenter/api-designer/projects"
 LIST_PROJECTS_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects"
 DESIGN_UPLOAD_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/branches/master/save/v2"
 LOCK_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/branches/master/acquireLock"
-EXPORT_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/export"
+EXPORT_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/master/export"
 
 
 
@@ -194,7 +194,7 @@ def register(mcp):
         token: str,
         org_id: str,
         user_id: str,
-        project_id: str
+        project_id: str,
     ) -> bytes:
         """
         Download the entire Design Center project as a ZIP file (binary).
