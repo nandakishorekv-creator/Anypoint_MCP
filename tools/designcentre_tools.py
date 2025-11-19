@@ -6,8 +6,8 @@ DESIGN_BASE = "https://anypoint.mulesoft.com/designcenter/api-designer/projects"
 LIST_PROJECTS_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects"
 DESIGN_UPLOAD_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/branches/master/save/v2"
 LOCK_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/branches/master/acquireLock"
-EXPORT_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/master/export"
-
+EXPORT_URL = "https://anypoint.mulesoft.com/designcenter/api/designer/projects/{project_id}/branches/{branch}/export?format=zip"
+PUBLISH_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/branches/master/publish/exchange"
 
 
 
@@ -195,25 +195,67 @@ def register(mcp):
         org_id: str,
         user_id: str,
         project_id: str,
-        branch="master"
+        branch: str = "master"
     ) -> bytes:
-        """
-        Download the entire Design Center project as a ZIP file (binary).
-        Returns ZIP bytes which Claude can save to disk.
-        """
 
-        url = EXPORT_URL.format(project_id=project_id)
+        url = EXPORT_URL.format(project_id=project_id, branch=branch)
 
         headers = {
             "Authorization": f"Bearer {token}",
             "x-owner-id": user_id,
             "x-organization-id": org_id,
+            "Accept": "application/zip"
         }
 
         async with httpx.AsyncClient() as client:
             try:
                 resp = await client.get(url, headers=headers, timeout=40.0)
                 resp.raise_for_status()
-                return resp.content    # ZIP bytes
+                return resp.content
             except Exception as e:
                 return f"Error downloading project: {e}"
+
+    #Publish Design Center Project to Anypoint Exchange
+    @mcp.tool()
+    async def publish_design_project(
+        token: str,
+        org_id: str,
+        user_id: str,
+        project_id: str,
+        main_file: str,
+        api_version: str,
+        version: str,
+        asset_id: str,
+        group_id: str,
+        classifier: str = "raml"
+    ) -> str:
+        """
+        Publish the uploaded Design Center project to Anypoint Exchange.
+        """
+
+        url = PUBLISH_URL.format(project_id=project_id)
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "x-owner-id": user_id,
+            "x-organization-id": org_id,
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "main": main_file,
+            "apiVersion": api_version,
+            "version": version,
+            "assetId": asset_id,
+            "groupId": group_id,
+            "classifier": classifier
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.post(url, headers=headers, json=payload, timeout=40.0)
+                resp.raise_for_status()
+                return resp.text
+            except Exception as e:
+                return f"Error publishing design project: {e}"
+
