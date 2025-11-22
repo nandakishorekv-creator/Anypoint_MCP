@@ -46,9 +46,9 @@
       "description": "List all environments in an Anypoint organization."
     },
     {
-      "name": "create_api_instance_simple",
-      "identifier": "api_manager.create_api_instance_simple",
-      "description": "Create an API Manager Instance (Mule 4) using simplified payload."
+      "name": "create_api_instance",
+      "identifier": "api_manager.create_api_instance",
+      "description": "Create an API Manager Instance (Mule 4) "
     },
     {
       "name": "list_api_instances",
@@ -56,8 +56,8 @@
       "description": "List all API Manager instances in an environment."
     },
     {
-      "name": "get_api_contracts",
-      "identifier": "api_manager.get_api_contracts",
+      "name": "list_api_contracts",
+      "identifier": "api_manager.list_api_contracts",
       "description": "Retrieve all contracts for an API Manager instance."
     },
     {
@@ -142,12 +142,12 @@
     },
     {
       "name": "get_raml_from_link",
-      "identifier": "raml_tools.get_raml_from_link",
+      "identifier": "raml.get_raml_from_link",
       "description": "Fetch RAML file from a downloadable ZIP URL."
     },
     {
       "name": "get_raml_from_migration",
-      "identifier": "raml_tools.get_raml_from_migration",
+      "identifier": "raml.get_raml_from_migration",
       "description": "Read RAML content from migration output folder."
     }
   ],
