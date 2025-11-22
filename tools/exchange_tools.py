@@ -107,6 +107,10 @@ def register(mcp):
         category: str,
         value: str
     ) -> dict:
+        """
+        Add a category tag value to an asset in Anypoint Exchange.
+        This allows organizing and tagging assets with custom categories.
+        """
         
         url = ASSET_CATEGORY_URL.format(
             org_id=org_id,
@@ -266,10 +270,10 @@ def register(mcp):
         app_id: str,
         api_instance_id: str,
         asset_id: str,
-        group_id: str,              # REQUIRED: Asset might belong to a different group
+        group_id: str,              
         asset_version: str,
-        version: str = "v1",        # REQUIRED: Cannot assume "v1"
-        tier_id: int | None = None  # REQUIRED: If the API uses SLA tiers
+        version: str = "v1",        
+        tier_id: int | None = None  
     ) -> dict:
         """
         Create API contract (Request Access) for an Application.

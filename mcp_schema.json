@@ -1,0 +1,156 @@
+{
+  "protocolVersion": "2025-03-26",
+  "introspectedAt": "2025-11-22T10:00:00Z",
+  "connectionStatus": "success",
+
+  "transport": {
+    "kind": "sse",
+    "ssePath": "/events"
+  },
+
+  "provider": {
+    "organization": "NJC Labs UK",
+    "url": ""
+  },
+
+  "capabilities": {
+    "tools": true,
+    "resources": false,
+    "prompts": false,
+    "logging": true
+  },
+
+  "logging": {
+    "level": "info"
+  },
+
+  "tools": [
+    {
+      "name": "get_token",
+      "identifier": "login.get_token",
+      "description": "Retrieve client-credentials token for Anypoint Platform."
+    },
+    {
+      "name": "get_user_token",
+      "identifier": "login.get_user_token",
+      "description": "Login with username/password to retrieve USER token for Design Center operations."
+    },
+    {
+      "name": "get_user_info",
+      "identifier": "login.get_user_info",
+      "description": "Fetch user identity details from Anypoint."
+    },
+    {
+      "name": "list_environments",
+      "identifier": "accounts.list_environments",
+      "description": "List all environments in an Anypoint organization."
+    },
+    {
+      "name": "create_api_instance_simple",
+      "identifier": "api_manager.create_api_instance_simple",
+      "description": "Create an API Manager Instance (Mule 4) using simplified payload."
+    },
+    {
+      "name": "list_api_instances",
+      "identifier": "api_manager.list_api_instances",
+      "description": "List all API Manager instances in an environment."
+    },
+    {
+      "name": "get_api_contracts",
+      "identifier": "api_manager.get_api_contracts",
+      "description": "Retrieve all contracts for an API Manager instance."
+    },
+    {
+      "name": "apply_client_id_policy",
+      "identifier": "api_manager.apply_client_id_policy",
+      "description": "Apply Client ID Enforcement policy to an API instance."
+    },
+    {
+      "name": "create_sla_tier",
+      "identifier": "api_manager.create_sla_tier",
+      "description": "Create SLA tiers in API Manager."
+    },
+    {
+      "name": "list_sla_tiers",
+      "identifier": "api_manager.list_sla_tiers",
+      "description": "List all SLA tiers for an API instance."
+    },
+    {
+      "name": "apply_sla_rate_limiting_",
+      "identifier": "api_manager.apply_sla_rate_limiting_",
+      "description": "Apply SLA-based rate limiting policy using custom expressions."
+    },
+    {
+      "name": "create_and_lock_design_project",
+      "identifier": "designcenter.create_and_lock_design_project",
+      "description": "Create a new Design Center project and auto-lock it."
+    },
+    {
+      "name": "create_design_fragment_project",
+      "identifier": "designcenter.create_design_fragment_project",
+      "description": "Create a RAML fragment Design Center project."
+    },
+    {
+      "name": "list_design_projects",
+      "identifier": "designcenter.list_design_projects",
+      "description": "List all Design Center API projects."
+    },
+    {
+      "name": "upload_design_files",
+      "identifier": "designcenter.upload_design_files",
+      "description": "Upload RAML or fragment files to Design Center."
+    },
+    {
+      "name": "publish_design_project",
+      "identifier": "designcenter.publish_design_project",
+      "description": "Publish Design Center project to Anypoint Exchange."
+    },
+    {
+      "name": "get_organization_assets",
+      "identifier": "exchange.get_organization_assets",
+      "description": "List all existing Anypoint Exchange assets."
+    },
+    {
+      "name": "get_asset_details",
+      "identifier": "exchange.get_asset_details",
+      "description": "Retrieve details of a specific Exchange asset."
+    },
+    {
+      "name": "create_exchange_category_group",
+      "identifier": "exchange.create_exchange_category_group",
+      "description": "Create category groups in Anypoint Exchange."
+    },
+    {
+      "name": "add_exchange_category",
+      "identifier": "exchange.add_exchange_category",
+      "description": "Assign a category value to an Exchange asset."
+    },
+    {
+      "name": "download_exchange_asset",
+      "identifier": "exchange.download_exchange_asset",
+      "description": "Download any Exchange asset (RAML, fragments, connectors, etc.)."
+    },
+    {
+      "name": "create_application",
+      "identifier": "exchange.create_application",
+      "description": "Create a Consumer Application in Exchange (Client ID & Secret)."
+    },
+    {
+      "name": "create_api_contract",
+      "identifier": "exchange.create_api_contract",
+      "description": "Request API access (Contract) for a client app."
+    },
+    {
+      "name": "get_raml_from_link",
+      "identifier": "raml_tools.get_raml_from_link",
+      "description": "Fetch RAML file from a downloadable ZIP URL."
+    },
+    {
+      "name": "get_raml_from_migration",
+      "identifier": "raml_tools.get_raml_from_migration",
+      "description": "Read RAML content from migration output folder."
+    }
+  ],
+
+  "platform": "python-3.12"
+}

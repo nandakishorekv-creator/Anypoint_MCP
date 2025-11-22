@@ -239,7 +239,7 @@ def register(mcp):
         description: str,
         api_version_id: str,
         limits: list,
-        auto_approve: bool = True,
+        auto_approve: bool = False,
         status: str = "ACTIVE"
     ) -> dict:
         """
