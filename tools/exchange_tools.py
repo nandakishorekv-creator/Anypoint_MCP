@@ -1,9 +1,18 @@
 import httpx
 
+import os
+
 EXCHANGE_BASE = "https://anypoint.mulesoft.com/exchange/api/v2"
 CATEGORY_URL = "https://anypoint.mulesoft.com/exchange/api/v2/organizations/{org_id}/assets/{group_id}/{asset_id}/{version}/categories/{category}"
 CATEGORY_GROUP_URL = "https://anypoint.mulesoft.com/exchange/api/v2/organizations/{org_id}/categories"
 ASSET_CATEGORY_URL = "https://anypoint.mulesoft.com/exchange/api/v1/organizations/{org_id}/assets/{org_id}/{asset_id}/{version}/tags/categories/{category}"
+ASSET_DETAILS_URL = "https://anypoint.mulesoft.com/exchange/api/v2/assets/{group_id}/{asset_id}/{version}/files"
+DOWNLOAD_URL = "https://anypoint.mulesoft.com/exchange/api/{api_version}/assets/{org_id}/{asset_name}"
+CREATE_APP_URL = "https://anypoint.mulesoft.com/exchange/api/v2/organizations/{org_id}/applications?apiInstanceId={api_id}"
+CREATE_CONTRACT_URL = "https://anypoint.mulesoft.com/exchange/api/v2/organizations/{org_id}/applications/{app_id}/contracts"
+
+
+
 
 # Register Exchange-related tools
 
@@ -75,7 +84,7 @@ def register(mcp):
                 }
 
                 payload = {
-                    "display_name": category_name,
+                    "displayName": category_name,
                     "acceptedValues": values,
                     "assetTypeRestrictions": asset_types
                 }
@@ -86,7 +95,7 @@ def register(mcp):
                         resp.raise_for_status()
                         return resp.json()
                     except Exception as e:
-                        return {"error": str(e)}    
+                        return {"error": str(e)}
 
 #Add asset to exchange category
     @mcp.tool()
@@ -123,3 +132,180 @@ def register(mcp):
             except Exception as e:
                 return {"error": str(e)}
 
+#DOWNLOAD EXTERNAL ASSET (V1 & V2 SUPPORT)
+    @mcp.tool()
+    async def download_exchange_asset(
+        token: str,
+        org_id: str,
+        owner_id: str,
+        asset_name: str,
+        api_version: str = "v1"
+    ) -> dict:
+        """
+        UNIVERSAL Exchange Asset Downloader (V1 & V2 smart support)
+
+        - Downloads metadata from Exchange (v1 or v2)
+        - Returns classifiers, packaging, externalLink URLs, checksums
+        - Automatically detects missing fields
+        - Works for ANY asset:
+            ✓ RAML/OAS assets
+            ✓ Fragments
+            ✓ Parent POMs
+            ✓ Connectors
+            ✓ Maven libs
+            ✓ Templates
+
+        Parameters:
+            token       : Bearer token
+            org_id      : Organization ID
+            owner_id    : User ID (x-owner-id)
+            asset_name  : Asset to download (ex: "istika-parent-pom-new")
+            api_version : "v1" or "v2"
+        """
+
+        # Build dynamic URL
+        url = f"https://anypoint.mulesoft.com/exchange/api/{api_version}/assets/{org_id}/{asset_name}"
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "x-owner-id": owner_id,
+            "x-organization-id": org_id,
+            "Content-Type": "application/json"
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.get(url, headers=headers, timeout=30)
+                resp.raise_for_status()
+                data = resp.json()
+
+                # In v2 assets are inside "files" → same structure
+                files = data.get("files", [])
+
+                extracted = []
+                for f in files:
+                    extracted.append({
+                        "classifier": f.get("classifier"),
+                        "packaging": f.get("packaging"),
+                        "externalLink": f.get("externalLink"),
+                        "md5": f.get("md5"),
+                        "sha1": f.get("sha1"),
+                        "downloadURL": f.get("downloadURL")
+                    })
+
+                return {
+                    "status": "success",
+                    "api_version": api_version,
+                    "asset": asset_name,
+                    "files": extracted,
+                    "raw": data
+                }
+
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
+
+
+    #Create Application
+    @mcp.tool()
+    async def create_application(
+        token: str,
+        org_id: str,
+        api_instance_id: str, 
+        app_name: str,
+        description: str,
+        url: str = "http://example.com"
+        
+        
+    ) -> dict:
+        """
+        Create a Client Application in Anypoint Exchange.
+        Required to obtain Client ID/Secret before requesting access.
+        """
+        
+        url = CREATE_APP_URL.format(
+            org_id=org_id, 
+            api_id=api_instance_id
+        )
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+
+        params = {"apiInstanceId": api_instance_id}
+
+        payload = {
+            "name": app_name,
+            "description": description,
+            "url": url,
+            "redirectUri": [], 
+            "grantTypes": [],
+            "apiEndpoints": False
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.post(
+                    url, 
+                    headers=headers, 
+                    params=params, 
+                    json=payload, 
+                    timeout=40.0
+                )
+                resp.raise_for_status()
+                return resp.json()
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
+            
+            
+    #CREATE API CONTRACT
+    @mcp.tool()
+    async def create_api_contract(
+        token: str,
+        org_id: str,
+        app_id: str,
+        api_instance_id: str,
+        asset_id: str,
+        group_id: str,              # REQUIRED: Asset might belong to a different group
+        asset_version: str,
+        version: str = "v1",        # REQUIRED: Cannot assume "v1"
+        tier_id: int | None = None  # REQUIRED: If the API uses SLA tiers
+    ) -> dict:
+        """
+        Create API contract (Request Access) for an Application.
+        """
+        # URL: .../organizations/{orgId}/applications/{appId}/contracts
+        url = CREATE_CONTRACT_URL.format(
+            org_id=org_id,
+            app_id=app_id
+        )  
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "apiId": api_instance_id,
+            "instanceType": "api",
+            "acceptedTerms": True,
+            "organizationId": org_id,
+            "groupId": group_id,         # Fixed: Uses actual group_id
+            "assetId": asset_id,
+            "version": asset_version,
+            "versionGroup": version # Fixed: Uses actual version_group
+        }
+
+        # Only add tier if the user provided it (Required for SLA-based policies)
+        if tier_id is not None:
+            payload["requestedTierId"] = tier_id
+
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.post(url, headers=headers, json=payload, timeout=40.0)
+                resp.raise_for_status()
+                return resp.json()
+            except Exception as e:
+                # Return valid JSON error so the Agent knows what happened
+                return {"status": "error", "message": str(e)}
+    

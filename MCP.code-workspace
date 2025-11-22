@@ -1,0 +1,31 @@
+{
+	"folders": [
+		{
+			"path": "../../../../Documents/MCP"
+		},
+		{
+			"path": "../../../../Documents/AnypointMCP"
+		}
+	],
+	"settings": {
+		"mcp": {
+			"servers": {
+				"myserver": {
+					"type": "stdio",
+					"command": "get",
+					"args": [
+						"availoable",
+						"assets",
+						"{",
+						"`token`:",
+						"`65be0fd4-9415-4168-98b2-d80f30f4101b`,",
+						"`org_id`:",
+						"`a9307ebf-b519-42e4-88ed-a9d85f540ce5`",
+						"}"
+					]
+				}
+			},
+			"inputs": []
+		}
+	}
+}

@@ -1,12 +1,13 @@
 import httpx
 import os
+import asyncio
+import mcp.types as types
 
-
-DESIGN_BASE = "https://anypoint.mulesoft.com/designcenter/api-designer/projects"
+CREATE_PROJECT_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects"
 LIST_PROJECTS_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects"
 DESIGN_UPLOAD_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/branches/master/save/v2"
-LOCK_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/branches/master/acquireLock"
-EXPORT_URL = "https://anypoint.mulesoft.com/designcenter/api/designer/projects/{project_id}/branches/{branch}/export?format=zip"
+LOCK_PROJECT_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/branches/master/acquireLock"
+EXPORT_URL = "https://anypoint.mulesoft.com/designcenter/api/designer/projects/{project_id}/branches/{branch}/archive"
 PUBLISH_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}/branches/master/publish/exchange"
 
 
@@ -14,15 +15,18 @@ PUBLISH_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/
 # Create a new Design Center project
 def register(mcp):
     @mcp.tool()
-    async def create_design_project(
+    async def create_and_lock_design_project(
         token: str,
         org_id: str,
         user_id: str,
         project_name: str,
         main_file: str = "api.raml"
-    ) -> str:
+    ) -> dict:
         """
-        Create a new Design Center API project.
+        Create a Design Center project AND automatically acquire the lock.
+        This merges:
+        - create_design_project
+        - acquire_design_lock
         """
 
         headers = {
@@ -32,6 +36,7 @@ def register(mcp):
             "Content-Type": "application/json"
         }
 
+        # STEP 1 — Create project
         payload = {
             "name": project_name,
             "main": main_file,
@@ -42,16 +47,153 @@ def register(mcp):
 
         async with httpx.AsyncClient() as client:
             try:
-                resp = await client.post(
-                    DESIGN_BASE,
+                create_resp = await client.post(
+                    CREATE_PROJECT_URL,
                     headers=headers,
                     json=payload,
                     timeout=30.0
                 )
-                resp.raise_for_status()
-                return resp.text
+                create_resp.raise_for_status()
+
+                project_info = create_resp.json()
+                project_id = project_info.get("id")
+
+                if not project_id:
+                    return {
+                        "status": "error",
+                        "error": "Project created but no project_id returned."
+                    }
+
             except Exception as e:
-                return f"Error creating Design Center project: {e}"
+                return {
+                    "status": "error",
+                    "step": "create",
+                    "error": str(e)
+                }
+
+            # STEP 2 — Acquire lock
+            lock_url = LOCK_PROJECT_URL.format(project_id=project_id)
+
+            lock_payload = {
+                "locked": True,
+                "name": "locked"
+            }
+
+            try:
+                lock_resp = await client.post(
+                    lock_url,
+                    headers=headers,
+                    json=lock_payload,
+                    timeout=30.0
+                )
+                lock_resp.raise_for_status()
+
+                return {
+                    "status": "success",
+                    "message": "Design project created and locked successfully.",
+                    "project_id": project_id,
+                    "project_details": project_info
+                }
+
+            except Exception as e:
+                return {
+                    "status": "partial_success",
+                    "project_id": project_id,
+                    "error": f"Project created but lock failed: {str(e)}"
+                }
+
+#CREATE FRAGMENT PROJECT
+    @mcp.tool()
+    async def create_design_fragment_project(
+        project_name: str,
+        token: str,
+        org_id: str,
+        owner_id: str,
+        description: str,
+        subtype: str
+    ) -> dict:
+        """
+        Create a RAML Fragment Design Center project AND acquire lock automatically.
+        subtype options: "type", "trait", "resourceType", "library"
+        """
+        
+        # Ensure no trailing slash to avoid URL errors
+        base_url = CREATE_PROJECT_URL.rstrip("/") 
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "x-organization-id": org_id,
+            "x-owner-id": owner_id,
+            "Content-Type": "application/json"
+        }
+
+        # STEP 1: Create the fragment project
+        payload = {
+            "name": project_name,
+            "description": description,
+            "classifier": "raml-fragment",
+            "type": "raml-fragment",
+            "subType": subtype
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                # 1. Create Project
+                print(f"Creating project '{project_name}'...")
+                resp = await client.post(base_url, headers=headers, json=payload, timeout=30)
+                resp.raise_for_status()
+
+                project = resp.json()
+                project_id = project.get("id")
+
+                if not project_id:
+                    return {"status": "error", "message": "Project created but ID missing", "raw": project}
+
+                # --- CRITICAL FIX: WAIT FOR GIT REPO INITIALIZATION ---
+                # The master branch takes a moment to appear after project creation.
+                print("Waiting for repository initialization...")
+                await asyncio.sleep(2) 
+                # ------------------------------------------------------
+
+                # 2. Acquire Master Branch Lock
+                # Note: Endpoint is usually .../projects/{id}/branches/master/acquireLock
+                lock_url = f"{base_url}/{project_id}/branches/master/acquireLock"
+                
+                # Some versions of DC require 'force=true' or specific body. 
+                # This empty/minimal payload usually works.
+                lock_payload = {
+                    "locked": True, 
+                    "name": "locked" 
+                }
+
+                print(f"Acquiring lock on {project_id}...")
+                lock_resp = await client.post(lock_url, headers=headers, json=lock_payload, timeout=30)
+                
+                # Custom Error Handling to see the REAL error
+                if lock_resp.status_code != 200:
+                    return {
+                        "status": "partial_success",
+                        "message": f"Project created, but Lock failed: {lock_resp.status_code}",
+                        "projectId": project_id,
+                        "lock_error_details": lock_resp.text # This tells you WHY (e.g. 'Branch not found')
+                    }
+
+                return {
+                    "status": "success",
+                    "projectId": project_id,
+                    "lock": lock_resp.json(),
+                    "raw": project
+                }
+
+            except httpx.HTTPStatusError as e:
+                return {
+                    "status": "error", 
+                    "message": f"HTTP Error: {e.response.status_code}", 
+                    "details": e.response.text
+                }
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
+
 
 # List all Design Center projects for an organization and user
     @mcp.tool()
@@ -148,72 +290,7 @@ def register(mcp):
             except Exception as e:
                 return f"Error uploading project files: {e}"
     
-    #Acquire Design Lock
-    @mcp.tool()
-    async def acquire_design_lock(
-        token: str,
-        org_id: str,
-        user_id: str,
-        project_id: str
-    ) -> str:
-        """
-        Acquire design center project lock before uploading files.
-        """
-
-        url = LOCK_URL.format(project_id=project_id)
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "x-organization-id": org_id,
-            "x-owner-id": user_id,
-            "Content-Type": "application/json"
-        }
-
-        payload = {
-            "locked": True,
-            "name": "locked"
-        }
-
-        async with httpx.AsyncClient() as client:
-            try:
-                resp = await client.post(
-                    url,
-                    headers=headers,
-                    json=payload,
-                    timeout=20.0
-                )
-                resp.raise_for_status()
-                return resp.text
-            except Exception as e:
-                return f"Error acquiring lock: {e}"
-
     
-    #Download Design Center Project as ZIP
-    @mcp.tool()
-    async def download_design_project(
-        token: str,
-        org_id: str,
-        user_id: str,
-        project_id: str,
-        branch: str = "master"
-    ) -> bytes:
-
-        url = EXPORT_URL.format(project_id=project_id, branch=branch)
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "x-owner-id": user_id,
-            "x-organization-id": org_id,
-            "Accept": "application/zip"
-        }
-
-        async with httpx.AsyncClient() as client:
-            try:
-                resp = await client.get(url, headers=headers, timeout=40.0)
-                resp.raise_for_status()
-                return resp.content
-            except Exception as e:
-                return f"Error downloading project: {e}"
 
     #Publish Design Center Project to Anypoint Exchange
     @mcp.tool()
@@ -226,7 +303,6 @@ def register(mcp):
         api_version: str,
         version: str,
         asset_id: str,
-        group_id: str,
         classifier: str = "raml"
     ) -> str:
         """
@@ -247,7 +323,6 @@ def register(mcp):
             "apiVersion": api_version,
             "version": version,
             "assetId": asset_id,
-            "groupId": group_id,
             "classifier": classifier
         }
 
