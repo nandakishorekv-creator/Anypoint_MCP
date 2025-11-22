@@ -1,156 +1,398 @@
 {
-  "protocolVersion": "2025-03-26",
-  "introspectedAt": "2025-11-22T10:00:00Z",
-  "connectionStatus": "success",
-
   "transport": {
     "kind": "sse",
-    "ssePath": "/events"
+    "url": "",
+    "messagesPath": "/events"
   },
-
-  "provider": {
-    "organization": "NJC Labs UK",
-    "url": "https://github.com/nandakishorekv-creator/Anypoint_MCP"
+  "info": {
+    "title": "Anypoint Platform MCP Server",
+    "version": "1.0.0",
+    "description": "Comprehensive MCP Server for managing MuleSoft Anypoint Platform: Exchange, Design Center, API Manager, and Access Management.",
+    "repository": "https://github.com/nandakishorekv-creator/Anypoint_MCP"
   },
-
   "capabilities": {
     "tools": true,
     "resources": false,
     "prompts": false,
     "logging": true
   },
-
-  "logging": {
-    "level": "info"
-  },
-
   "tools": [
     {
-      "name": "get_token",
-      "identifier": "login.get_token",
-      "description": "Retrieve client-credentials token for Anypoint Platform."
+      "name": "get_user_token",
+      "description": "Login to Anypoint Platform using username and password to retrieve an access token.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string", "description": "Anypoint username" },
+          "password": { "type": "string", "description": "Anypoint password" }
+        },
+        "required": ["username", "password"]
+      }
     },
     {
-      "name": "get_user_token",
-      "identifier": "login.get_user_token",
-      "description": "Login with username/password to retrieve USER token for Design Center operations."
+      "name": "get_token",
+      "description": "Get OAuth client credentials token from Anypoint Platform (Connected App).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "client_id": { "type": "string", "description": "Connected App Client ID" },
+          "client_secret": { "type": "string", "description": "Connected App Client Secret" }
+        },
+        "required": ["client_id", "client_secret"]
+      }
     },
     {
       "name": "get_user_info",
-      "identifier": "login.get_user_info",
-      "description": "Fetch user identity details from Anypoint."
+      "description": "Fetch authenticated user's identity info (User ID, Org ID, etc.) from Anypoint Platform.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string", "description": "Access token" }
+        },
+        "required": ["token"]
+      }
     },
     {
       "name": "list_environments",
-      "identifier": "accounts.list_environments",
-      "description": "List all environments in an Anypoint organization."
-    },
-    {
-      "name": "create_api_instance",
-      "identifier": "api_manager.create_api_instance",
-      "description": "Create an API Manager Instance (Mule 4) "
-    },
-    {
-      "name": "list_api_instances",
-      "identifier": "api_manager.list_api_instances",
-      "description": "List all API Manager instances in an environment."
-    },
-    {
-      "name": "list_api_contracts",
-      "identifier": "api_manager.list_api_contracts",
-      "description": "Retrieve all contracts for an API Manager instance."
-    },
-    {
-      "name": "apply_client_id_policy",
-      "identifier": "api_manager.apply_client_id_policy",
-      "description": "Apply Client ID Enforcement policy to an API instance."
-    },
-    {
-      "name": "create_sla_tier",
-      "identifier": "api_manager.create_sla_tier",
-      "description": "Create SLA tiers in API Manager."
-    },
-    {
-      "name": "list_sla_tiers",
-      "identifier": "api_manager.list_sla_tiers",
-      "description": "List all SLA tiers for an API instance."
-    },
-    {
-      "name": "apply_sla_rate_limiting_",
-      "identifier": "api_manager.apply_sla_rate_limiting_",
-      "description": "Apply SLA-based rate limiting policy using custom expressions."
-    },
-    {
-      "name": "create_and_lock_design_project",
-      "identifier": "designcenter.create_and_lock_design_project",
-      "description": "Create a new Design Center project and auto-lock it."
-    },
-    {
-      "name": "create_design_fragment_project",
-      "identifier": "designcenter.create_design_fragment_project",
-      "description": "Create a RAML fragment Design Center project."
-    },
-    {
-      "name": "list_design_projects",
-      "identifier": "designcenter.list_design_projects",
-      "description": "List all Design Center API projects."
-    },
-    {
-      "name": "upload_design_files",
-      "identifier": "designcenter.upload_design_files",
-      "description": "Upload RAML or fragment files to Design Center."
-    },
-    {
-      "name": "publish_design_project",
-      "identifier": "designcenter.publish_design_project",
-      "description": "Publish Design Center project to Anypoint Exchange."
+      "description": "List all environments in an Anypoint organization and return their IDs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" }
+        },
+        "required": ["token", "org_id"]
+      }
     },
     {
       "name": "get_organization_assets",
-      "identifier": "exchange.get_organization_assets",
-      "description": "List all existing Anypoint Exchange assets."
+      "description": "List all assets in Anypoint Exchange for a given organization.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" }
+        },
+        "required": ["token", "org_id"]
+      }
     },
     {
       "name": "get_asset_details",
-      "identifier": "exchange.get_asset_details",
-      "description": "Retrieve details of a specific Exchange asset."
-    },
-    {
-      "name": "create_exchange_category_group",
-      "identifier": "exchange.create_exchange_category_group",
-      "description": "Create category groups in Anypoint Exchange."
-    },
-    {
-      "name": "add_exchange_category",
-      "identifier": "exchange.add_exchange_category",
-      "description": "Assign a category value to an Exchange asset."
+      "description": "Get detailed information about a specific asset in Anypoint Exchange.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "asset_id": { "type": "string" },
+          "version": { "type": "string" }
+        },
+        "required": ["token", "org_id", "asset_id", "version"]
+      }
     },
     {
       "name": "download_exchange_asset",
-      "identifier": "exchange.download_exchange_asset",
-      "description": "Download any Exchange asset (RAML, fragments, connectors, etc.)."
+      "description": "Downloads metadata, classifiers, and file links for an Exchange asset (Supports V1 & V2).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "owner_id": { "type": "string" },
+          "asset_name": { "type": "string" },
+          "api_version": { "type": "string", "description": "v1 or v2", "default": "v1" }
+        },
+        "required": ["token", "org_id", "owner_id", "asset_name"]
+      }
+    },
+    {
+      "name": "create_and_lock_design_project",
+      "description": "Create a Design Center project AND automatically acquire the lock.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "user_id": { "type": "string" },
+          "project_name": { "type": "string" },
+          "main_file": { "type": "string", "default": "api.raml" }
+        },
+        "required": ["token", "org_id", "user_id", "project_name"]
+      }
+    },
+    {
+      "name": "create_design_fragment_project",
+      "description": "Create a RAML Fragment Design Center project and acquire lock.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_name": { "type": "string" },
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "owner_id": { "type": "string" },
+          "description": { "type": "string" },
+          "subtype": { "type": "string", "enum": ["type", "trait", "resourceType", "library"] }
+        },
+        "required": ["project_name", "token", "org_id", "owner_id", "subtype"]
+      }
+    },
+    {
+      "name": "list_design_projects",
+      "description": "List all Design Center projects for the given organization and user.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "user_id": { "type": "string" }
+        },
+        "required": ["token", "org_id", "user_id"]
+      }
+    },
+    {
+      "name": "upload_design_files",
+      "description": "Upload RAML files and supporting files from a folder to a Design Center project.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "user_id": { "type": "string" },
+          "project_id": { "type": "string" },
+          "folder_path": { "type": "string", "description": "Local folder path containing RAML files" }
+        },
+        "required": ["token", "org_id", "user_id", "project_id", "folder_path"]
+      }
+    },
+    {
+      "name": "publish_design_project",
+      "description": "Publish the uploaded Design Center project to Anypoint Exchange.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "user_id": { "type": "string" },
+          "project_id": { "type": "string" },
+          "main_file": { "type": "string" },
+          "api_version": { "type": "string" },
+          "version": { "type": "string" },
+          "asset_id": { "type": "string" },
+          "classifier": { "type": "string", "default": "raml" }
+        },
+        "required": ["token", "org_id", "user_id", "project_id", "main_file", "api_version", "version", "asset_id"]
+      }
+    },
+    {
+      "name": "create_api_instance",
+      "description": "Create API Manager Instance using the proven stable v1 API.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "env_id": { "type": "string" },
+          "group_id": { "type": "string" },
+          "asset_id": { "type": "string" },
+          "version": { "type": "string" },
+          "instance_label": { "type": "string" }
+        },
+        "required": ["token", "org_id", "env_id", "group_id", "asset_id", "version"]
+      }
+    },
+    {
+      "name": "list_api_instances",
+      "description": "List all API instances in an environment.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "env_id": { "type": "string" }
+        },
+        "required": ["token", "org_id", "env_id"]
+      }
+    },
+    {
+      "name": "apply_client_id_policy",
+      "description": "Apply Client ID Enforcement Policy to an API instance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "env_id": { "type": "string" },
+          "instance_id": { "type": "string" },
+          "client_id_header": { "type": "string", "default": "client_id" },
+          "client_secret_header": { "type": "string", "default": "client_secret" },
+          "apply_to_all": { "type": "boolean", "default": true },
+          "methods": { "type": "array", "items": { "type": "string" } },
+          "resources": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["token", "org_id", "env_id", "instance_id"]
+      }
+    },
+    {
+      "name": "create_sla_tier",
+      "description": "Create an SLA Tier for an API Instance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "env_id": { "type": "string" },
+          "instance_id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "api_version_id": { "type": "string" },
+          "limits": { 
+            "type": "array", 
+            "items": {
+               "type": "object",
+               "properties": {
+                 "visible": { "type": "boolean" },
+                 "timePeriodInMilliseconds": { "type": "integer" },
+                 "maximumRequests": { "type": "integer" }
+               }
+            } 
+          },
+          "auto_approve": { "type": "boolean", "default": true },
+          "status": { "type": "string", "default": "ACTIVE" }
+        },
+        "required": ["token", "org_id", "env_id", "instance_id", "name", "limits", "api_version_id"]
+      }
     },
     {
       "name": "create_application",
-      "identifier": "exchange.create_application",
-      "description": "Create a Consumer Application in Exchange (Client ID & Secret)."
+      "description": "Create a Client Application in Anypoint Exchange to obtain Client ID/Secret.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "api_instance_id": { "type": "string" },
+          "app_name": { "type": "string" },
+          "description": { "type": "string" },
+          "url": { "type": "string", "default": "http://example.com" }
+        },
+        "required": ["token", "org_id", "api_instance_id", "app_name"]
+      }
     },
     {
       "name": "create_api_contract",
-      "identifier": "exchange.create_api_contract",
-      "description": "Request API access (Contract) for a client app."
+      "description": "Create API contract (Request Access) for an Application.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "app_id": { "type": "string" },
+          "api_instance_id": { "type": "string" },
+          "asset_id": { "type": "string" },
+          "group_id": { "type": "string" },
+          "asset_version": { "type": "string" },
+          "version": { "type": "string", "default": "v1" },
+          "tier_id": { "type": "integer" }
+        },
+        "required": ["token", "org_id", "app_id", "api_instance_id", "asset_id", "group_id", "asset_version"]
+      }
+    },
+    {
+      "name": "list_api_contracts",
+      "description": "Retrieve all contracts for a given API instance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "env_id": { "type": "string" },
+          "instance_id": { "type": "string" }
+        },
+        "required": ["token", "org_id", "env_id", "instance_id"]
+      }
+    },
+    {
+      "name": "list_sla_tiers",
+      "description": "List all existing SLA tiers for an API instance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "env_id": { "type": "string" },
+          "instance_id": { "type": "string" }
+        },
+        "required": ["token", "org_id", "env_id", "instance_id"]
+      }
+    },
+    {
+      "name": "apply_sla_rate_limiting_",
+      "description": "Apply SLA-Based Rate Limiting Policy using Custom Expressions (e.g., Query Params).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "env_id": { "type": "string" },
+          "instance_id": { "type": "string" }
+        },
+        "required": ["token", "org_id", "env_id", "instance_id"]
+      }
+    },
+    {
+      "name": "create_exchange_category_group",
+      "description": "Create an Exchange Category Group using v2 categories API.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "category_name": { "type": "string" },
+          "values": { "type": "array", "items": { "type": "string" } },
+          "asset_types": { "type": "array", "items": { "type": "string" }, "default": ["rest-api"] }
+        },
+        "required": ["token", "org_id", "category_name", "values"]
+      }
+    },
+    {
+      "name": "add_exchange_category",
+      "description": "Add a category tag value to an asset in Anypoint Exchange.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "org_id": { "type": "string" },
+          "asset_id": { "type": "string" },
+          "version": { "type": "string" },
+          "category": { "type": "string" },
+          "value": { "type": "string" }
+        },
+        "required": ["token", "org_id", "asset_id", "version", "category", "value"]
+      }
     },
     {
       "name": "get_raml_from_link",
-      "identifier": "raml.get_raml_from_link",
-      "description": "Fetch RAML file from a downloadable ZIP URL."
+      "description": "Download a RAML ZIP and return the requested RAML file.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "download_url": { "type": "string", "description": "URL to download RAML ZIP" },
+          "main_file": { "type": "string", "description": "Path to main RAML file in ZIP" }
+        },
+        "required": ["download_url", "main_file"]
+      }
     },
     {
       "name": "get_raml_from_migration",
-      "identifier": "raml.get_raml_from_migration",
-      "description": "Read RAML content from migration output folder."
+      "description": "Read RAML directly from a migration output folder.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "migration_id": { "type": "string", "description": "Migration ID" },
+          "raml_file_path": { "type": "string", "description": "Path to RAML file in migration folder" }
+        },
+        "required": ["migration_id", "raml_file_path"]
+      }
     }
-  ],
-
-  "platform": "python-3.12"
+  ]
 }
