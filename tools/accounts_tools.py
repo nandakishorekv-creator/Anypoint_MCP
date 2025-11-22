@@ -2,7 +2,7 @@ import httpx
 
 ANYPOINT_TOKEN_URL = "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token"
 
-
+# Get Token Tool
 def register(mcp):
     @mcp.tool()
     async def get_token(client_id: str, client_secret: str) -> str:

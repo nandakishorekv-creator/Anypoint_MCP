@@ -2,6 +2,8 @@ import httpx
 
 ENV_URL = "https://anypoint.mulesoft.com/accounts/api/organizations/{org_id}/environments"
 
+# List Environments Tool
+
 def register(mcp):
     @mcp.tool()
     async def list_environments(token: str, org_id: str) -> dict:

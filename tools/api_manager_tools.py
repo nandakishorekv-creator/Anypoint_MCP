@@ -13,7 +13,7 @@ CREATE_SLA_TIER_URL = "https://anypoint.mulesoft.com/apimanager/api/v1/organizat
 #Create API INSTANCE
 def register(mcp):
     @mcp.tool()
-    async def create_api_instance_simple(
+    async def create_api_instance(
         token: str,
         org_id: str,
         env_id: str,
@@ -97,7 +97,7 @@ def register(mcp):
 
 # List API contract and get Contract Details
     @mcp.tool()
-    async def get_api_contracts(
+    async def list_api_contracts(
         token: str,
         org_id: str,
         env_id: str,

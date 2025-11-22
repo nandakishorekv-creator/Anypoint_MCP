@@ -2,6 +2,7 @@ import httpx
 
 LOGIN_URL = "https://anypoint.mulesoft.com/accounts/login"
 
+# User Login Tool
 def register(mcp):
     @mcp.tool()
     async def get_user_token(username: str, password: str) -> str:
@@ -35,7 +36,7 @@ def register(mcp):
 
 
 
-
+# Get User Info Tool
     USER_URL = "https://anypoint.mulesoft.com/accounts/api/me"
 
     @mcp.tool()
