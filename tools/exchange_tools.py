@@ -58,14 +58,14 @@ def register(mcp):
                 org_id: str,
                 category_name: str,
                 values: list,
-                asset_types: list
+                asset_types: list = None
             ) -> dict:
                 """
                 Create an Exchange Category Group using the v2 categories API.
                 """
 
-                if asset_type_restrictions is None:
-                    asset_type_restrictions = ["rest-api"]
+                if asset_types is None:
+                    asset_types = ["rest-api"]
 
                 url = CATEGORY_GROUP_URL.format(org_id=org_id)
 
