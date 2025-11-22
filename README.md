@@ -1,4 +1,4 @@
-# Anypoint MCP Server - Complete Tool Functionality Documentation
+# Anypoint Platform MCP Server
 
 ## Overview
 This MCP (Model Context Protocol) server provides automated access to MuleSoft Anypoint Platform APIs. It includes 7 tool modules with a total of **25 tools** for managing Anypoint resources.
