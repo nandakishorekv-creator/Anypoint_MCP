@@ -1,8 +1,7 @@
 {
   "transport": {
     "kind": "sse",
-    "url": "",
-    "messagesPath": "/events"
+    "ssePath": "/events"
   },
   "info": {
     "title": "Anypoint Platform MCP Server",
