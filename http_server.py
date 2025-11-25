@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import uvicorn
 from mcp.server.fastmcp import FastMCP
 from tools import load_tools
+import os
 
 app = FastAPI(title="Anypoint MCP HTTP Server")
 
@@ -41,4 +42,5 @@ async def call_tool(body: dict):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8081)
+    port = int(os.environ.get("PORT", 8081))
+    uvicorn.run(app, host="0.0.0.0", port=port)
