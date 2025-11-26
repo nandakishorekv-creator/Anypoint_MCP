@@ -3,8 +3,17 @@ import uvicorn
 from mcp.server.fastmcp import FastMCP
 from tools import load_tools
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Anypoint MCP HTTP Server")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create MCP instance
 mcp = FastMCP("anypoint")
