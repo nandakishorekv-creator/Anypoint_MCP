@@ -5,10 +5,9 @@ LOGIN_URL = "https://anypoint.mulesoft.com/accounts/login"
 # User Login Tool
 def register(mcp):
     @mcp.tool()
-    async def get_user_token(username: str, password: str) -> str:
+    async def get_token_user(username: str, password: str) -> str:
         """
-        Login to Anypoint Platform using username + password.
-        Returns a USER TOKEN and USER ID required for Design Center operations.
+      Get Token from User Credentials Anypoint Platform.
         """
 
         payload = {

@@ -6,7 +6,7 @@ ANYPOINT_TOKEN_URL = "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token
 def register(mcp):
     @mcp.tool()
     async def get_token(client_id: str, client_secret: str) -> str:
-        """Get OAuth client credentials token from Anypoint Platform."""
+        """Get User token from Client Credentials Anypoint Platform."""
 
         payload = {
             "grant_type": "client_credentials",
