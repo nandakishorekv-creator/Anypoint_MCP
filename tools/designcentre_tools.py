@@ -4,6 +4,7 @@ import asyncio
 import mcp.types as types
 import zipfile
 import io
+from typing import Optional
 
 CREATE_PROJECT_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects"
 LIST_PROJECTS_URL = "https://anypoint.mulesoft.com/designcenter/api-designer/projects"
@@ -242,88 +243,8 @@ def register(mcp):
                 return resp.text
             except Exception as e:
                 return f"Error listing Design Center projects: {e}"
-    
-# upload RAML files to a Design Center project
-    @mcp.tool()
-    async def upload_design_files(
-        token: str,
-        org_id: str,
-        user_id: str,
-        project_id: str,
-        folder_path: str
-    ) -> str:
-        """
-        Upload RAML files and supporting files from a folder to a Design Center project.
-        
-        Fixes applied:
-        1. Normalizes Windows paths (backslashes) to forward slashes.
-        2. Uses explicit list of tuples for multipart upload to satisfy API requirements.
-        3. Better error handling and memory efficiency.
-        """
 
-        url = DESIGN_UPLOAD_URL.format(project_id=project_id)
 
-        # Validate folder exists
-        if not os.path.exists(folder_path):
-            return f"Error: Folder path '{folder_path}' does not exist"
-        
-        if not os.path.isdir(folder_path):
-            return f"Error: Path '{folder_path}' is not a directory"
-
-        # Collect files with better error handling
-        files_payload = []
-
-        try:
-            for root, dirs, files in os.walk(folder_path):
-                # Skip exchange_modules
-                if "exchange_modules" in root:
-                    continue
-
-                for file in files:
-                    file_path = os.path.join(root, file)
-
-                    # Get relative path and normalize
-                    relative_path = os.path.relpath(file_path, folder_path)
-                    normalized_path = relative_path.replace(os.sep, "/")
-
-                    try:
-                        with open(file_path, "rb") as f:
-                            content = f.read()
-                        files_payload.append((normalized_path, (normalized_path, content)))
-                    except Exception as file_error:
-                        return f"Error reading file '{file_path}': {file_error}"
-
-        except Exception as walk_error:
-            return f"Error traversing directory '{folder_path}': {walk_error}"
-
-        # Check if any files were found
-        if not files_payload:
-            return "Error: No files found to upload (excluding exchange_modules)"
-
-        # Prepare request headers
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "x-organization-id": org_id,
-            "x-owner-id": user_id,
-        }
-
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    url,
-                    headers=headers,
-                    files=files_payload,
-                    timeout=60.0
-                )
-                response.raise_for_status()
-                return f"Upload successful: {len(files_payload)} files uploaded. Response: {response.text}"
-            except httpx.HTTPStatusError as e:
-                return f"HTTP Error uploading files: {e.response.status_code} - {e.response.text}"
-            except httpx.TimeoutException:
-                return "Error: Request timeout while uploading files"
-            except Exception as e:
-                return f"Error uploading project files: {str(e)}"
-            
 # Import a Design Center Project from a local ZIP file
     @mcp.tool()
     async def import_design_project_from_zip(
@@ -333,17 +254,22 @@ def register(mcp):
         project_name: str,
         zip_file_path: str,
         description: str = "Imported via MCP",
-        main_file: str = "api.raml",
+        main_file: Optional[str] = None,
         project_type: str = "raml",
-        dependencies: str = None
+        dependencies: Optional[str] = None
     ) -> dict:
         """
-        Creates a Design Center project by importing a ZIP file.
-        - Automatically flattens nested folders in the ZIP.
-        - Explicitly sets the Root File (main file) after import.
+        Import a Design Center project from a local ZIP file path.
+        - Expects the server to have access to zip_file_path (local server).
+        - If main_file is not given, it defaults to "<project_name>.raml".
+        - Flattens a single top-level directory in the ZIP if present.
+        - Uploads to Anypoint Design Center and sets the project's main file.
         """
-        
-        # 1. Validate Input Path
+        # Ensure main_file defaults to "<project_name>.raml"
+        if not main_file:
+            main_file = f"{project_name}.raml"
+
+        # Validate path exists and is file
         if not os.path.exists(zip_file_path):
             return {"status": "error", "message": f"Path not found: {zip_file_path}"}
         if not os.path.isfile(zip_file_path):
@@ -351,14 +277,12 @@ def register(mcp):
 
         import_url = "https://anypoint.mulesoft.com/designcenter/api-designer/projects/import"
 
-        # Base headers (Content-Type will be set automatically for multipart)
         headers = {
             "Authorization": f"Bearer {token}",
             "x-organization-id": org_id,
             "x-owner-id": user_id
         }
 
-        # Prepare form fields for Import
         data = {
             "name": project_name,
             "description": description,
@@ -368,98 +292,69 @@ def register(mcp):
         if dependencies:
             data["dependencies"] = dependencies
 
-        async with httpx.AsyncClient() as client:
-            try:
-                file_content = None
-                
-                # 2. Analyze and Flatten ZIP if necessary
-                with zipfile.ZipFile(zip_file_path, 'r') as z_in:
-                    file_list = z_in.namelist()
-                    
-                    # Detect if all files are inside a single top-level directory
-                    roots = set()
-                    for name in file_list:
-                        parts = name.split('/')
-                        if len(parts) > 1 or name.endswith('/'):
-                            roots.add(parts[0])
-                        else:
-                            roots.add('.')
-                    
-                    # If we have exactly 1 top-level folder (and it's not current dir)
-                    if len(roots) == 1 and '.' not in roots:
-                        root_folder = list(roots)[0] + "/"
-                        print(f"Creating flattened ZIP (Removing root folder: {root_folder})...")
-                        
-                        zip_buffer = io.BytesIO()
-                        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as z_out:
-                            for item in z_in.infolist():
-                                if item.filename.startswith(root_folder) and item.filename != root_folder:
-                                    original_content = z_in.read(item.filename)
-                                    new_filename = item.filename[len(root_folder):]
-                                    z_out.writestr(new_filename, original_content)
-                        
-                        zip_buffer.seek(0)
-                        file_content = zip_buffer.read()
+        try:
+            # Read and possibly flatten the ZIP
+            with zipfile.ZipFile(zip_file_path, "r") as z_in:
+                file_list = z_in.namelist()
+
+                # Determine roots (detect single top-level folder)
+                roots = set()
+                for name in file_list:
+                    parts = name.split("/")
+                    if len(parts) > 1 or name.endswith("/"):
+                        roots.add(parts[0])
                     else:
-                        print("ZIP structure is already flat. Uploading as-is...")
-                        with open(zip_file_path, "rb") as f:
-                            file_content = f.read()
+                        roots.add(".")
 
-                # 3. Upload (Import Project)
-                files = {
-                    "zipFile": (os.path.basename(zip_file_path), file_content, "application/zip")
-                }
+                if len(roots) == 1 and "." not in roots:
+                    root_folder = list(roots)[0] + "/"
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as z_out:
+                        for item in z_in.infolist():
+                            if item.filename.startswith(root_folder) and item.filename != root_folder:
+                                original_content = z_in.read(item.filename)
+                                new_filename = item.filename[len(root_folder):]
+                                z_out.writestr(new_filename, original_content)
+                    zip_buffer.seek(0)
+                    file_content = zip_buffer.read()
+                else:
+                    # Use original zip bytes
+                    with open(zip_file_path, "rb") as f:
+                        file_content = f.read()
 
-                resp = await client.post(
-                    import_url,
-                    headers=headers,
-                    data=data,
-                    files=files,
-                    timeout=60.0
-                )
-                
-                if resp.status_code in [200, 201]:
-                    project_data = resp.json()
-                    project_id = project_data.get("id")
-                    
-            
-                    if project_id:
-                        print(f"Explicitly setting root file to '{main_file}'...")
-                        update_url = f"https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}"
-                        
-                        # Need explicit JSON headers for PUT
-                        json_headers = headers.copy()
-                        json_headers["Content-Type"] = "application/json"
-                        
-                        update_payload = {"main": main_file}
-                        
-                        update_resp = await client.put(
-                            update_url,
-                            headers=json_headers,
-                            json=update_payload,
-                            timeout=20.0
+            files = {
+                "zipFile": (os.path.basename(zip_file_path), file_content, "application/zip")
+            }
+
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(import_url, headers=headers, data=data, files=files, timeout=120.0)
+
+                if resp.status_code not in (200, 201):
+                    return {"status": "error", "code": resp.status_code, "message": resp.text}
+
+                project_data = resp.json()
+                project_id = project_data.get("id")
+
+                # If Project created, explicitly set main RAML file
+                if project_id:
+                    update_url = f"https://anypoint.mulesoft.com/designcenter/api-designer/projects/{project_id}"
+                    update_payload = {"main": main_file}
+                    json_headers = headers.copy()
+                    json_headers["Content-Type"] = "application/json"
+
+                    update_resp = await client.put(update_url, headers=json_headers, json=update_payload, timeout=30.0)
+                    if update_resp.status_code == 200:
+                        project_data["main"] = main_file
+                    else:
+                        # not fatal — add warning to response
+                        project_data.setdefault("_warnings", []).append(
+                            f"Failed to set root file (status {update_resp.status_code})"
                         )
-                        
-                        if update_resp.status_code == 200:
-                            print("Root file set successfully.")
-                            project_data["main"] = main_file # Update local object
-                        else:
-                            print(f"Warning: Failed to set root file. API Status: {update_resp.status_code}")
 
-                    return {
-                        "status": "success", 
-                        "message": "Project imported and root file set successfully.",
-                        "project": project_data
-                    }
-                
-                return {
-                    "status": "error",
-                    "code": resp.status_code,
-                    "message": resp.text
-                }
+                return {"status": "success", "message": "Project imported", "project": project_data}
 
-            except Exception as e:
-                return {"status": "error", "message": str(e)}
+        except Exception as exc:
+            return {"status": "error", "message": str(exc)}
     
 
     #Publish Design Center Project to Anypoint Exchange
@@ -503,4 +398,3 @@ def register(mcp):
                 return resp.text
             except Exception as e:
                 return f"Error publishing design project: {e}"
-

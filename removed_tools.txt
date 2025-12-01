@@ -1,0 +1,81 @@
+ 
+# upload RAML files to a Design Center project
+    @mcp.tool()
+    async def upload_design_files(
+        token: str,
+        org_id: str,
+        user_id: str,
+        project_id: str,
+        folder_path: str
+    ) -> str:
+        
+        #Upload RAML files and supporting files from a folder to a Design Center project.
+        
+        """Fixes applied:
+        1. Normalizes Windows paths (backslashes) to forward slashes.
+        2. Uses explicit list of tuples for multipart upload to satisfy API requirements.
+        3. Better error handling and memory efficiency."""
+        
+
+        url = DESIGN_UPLOAD_URL.format(project_id=project_id)
+
+        # Validate folder exists
+        if not os.path.exists(folder_path):
+            return f"Error: Folder path '{folder_path}' does not exist"
+        
+        if not os.path.isdir(folder_path):
+            return f"Error: Path '{folder_path}' is not a directory"
+
+        # Collect files with better error handling
+        files_payload = []
+
+        try:
+            for root, dirs, files in os.walk(folder_path):
+                # Skip exchange_modules
+                if "exchange_modules" in root:
+                    continue
+
+                for file in files:
+                    file_path = os.path.join(root, file)
+
+                    # Get relative path and normalize
+                    relative_path = os.path.relpath(file_path, folder_path)
+                    normalized_path = relative_path.replace(os.sep, "/")
+
+                    try:
+                        with open(file_path, "rb") as f:
+                            content = f.read()
+                        files_payload.append((normalized_path, (normalized_path, content)))
+                    except Exception as file_error:
+                        return f"Error reading file '{file_path}': {file_error}"
+
+        except Exception as walk_error:
+            return f"Error traversing directory '{folder_path}': {walk_error}"
+
+        # Check if any files were found
+        if not files_payload:
+            return "Error: No files found to upload (excluding exchange_modules)"
+
+        # Prepare request headers
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "x-organization-id": org_id,
+            "x-owner-id": user_id,
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(
+                    url,
+                    headers=headers,
+                    files=files_payload,
+                    timeout=60.0
+                )
+                response.raise_for_status()
+                return f"Upload successful: {len(files_payload)} files uploaded. Response: {response.text}"
+            except httpx.HTTPStatusError as e:
+                return f"HTTP Error uploading files: {e.response.status_code} - {e.response.text}"
+            except httpx.TimeoutException:
+                return "Error: Request timeout while uploading files"
+            except Exception as e:
+                return f"Error uploading project files: {str(e)}"
